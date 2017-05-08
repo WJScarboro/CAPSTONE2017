@@ -1,11 +1,10 @@
 package com.greatest.walt.arduinoscan;
 
-import android.os.Bundle;
-//import android.support.v7.app.AppCompatActivity;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -14,12 +13,16 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.io.IOException;
 import java.util.Set;
+
+//import android.support.v7.app.AppCompatActivity;
 
 
 public class DeviceActivity extends Activity {
 
-// textview for connection status
+    // textview for connection status
     TextView textView;
     ListView pairedListView;
     //Button logbutton;
@@ -47,28 +50,29 @@ public class DeviceActivity extends Activity {
         textView.setTextSize(40);
 
         mPairedDevicesArrayAdapter = new ArrayAdapter<String>(this, R.layout.device_name);
-        mPairedDevicesArrayAdapter.clear();// clears the array so items aren't duplicated when resuming from onPause
+        //clear device array and textView
+        mPairedDevicesArrayAdapter.clear();
+        textView.setText(" ");
 
-        textView.setText(" "); //makes the textview blank
-
-        // Find and set up the ListView for paired devices
+        // Makes the listView on main screen that displays connected devices w/mac address
         pairedListView = (ListView) findViewById(R.id.paired_devices);
         pairedListView.setAdapter(mPairedDevicesArrayAdapter);
         pairedListView.setOnItemClickListener(mDeviceClickListener);
 
-        // Get the local Bluetooth adapter
+        // Get the phones default bluetooth adapter
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        // Get a set of currently paired devices and append to pairedDevices list
+        // Makes a set out of currently paired Bluetooth devices
         Set<BluetoothDevice> pairedDevices = mBtAdapter.getBondedDevices();
 
-        // Add previously paired devices to the array
+        // Add set of paired devices to the array
         if (pairedDevices.size() > 0)
         {
-            findViewById(R.id.title_paired_devices).setVisibility(View.VISIBLE);//make title viewable
+            // There are paired devices. Get the name and address of each paired device.
+            findViewById(R.id.title_paired_devices).setVisibility(View.VISIBLE);
             for (BluetoothDevice device : pairedDevices)
             {
-                mPairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                mPairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());//MAC address
             }
         }
         else
@@ -107,10 +111,9 @@ public class DeviceActivity extends Activity {
                 Log.d(TAG, "...Bluetooth ON...");
             } else
             {
-                //Prompt user to turn on Bluetooth
+                //Makes a toast asking to enable Bluetooth
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(enableBtIntent, 1);
-
             }
         }
     }

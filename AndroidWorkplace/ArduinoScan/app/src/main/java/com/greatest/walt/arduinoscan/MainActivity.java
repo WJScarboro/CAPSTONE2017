@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,17 +20,13 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.pm.PackageManager;
 
 import com.greatest.walt.arduinoscan.MyData.LocationResult;
 
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -38,16 +35,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.UUID;
 
-//import self.philbrown.droidQuery.$;
-//import self.philbrown.droidQuery.AjaxOptions;
-//import self.philbrown.droidQuery.Function;
 
 /**
  * Created by Walt on 2/15/2017.
@@ -60,8 +53,8 @@ public class MainActivity extends Activity {
     TextView txtString;
     TextView txtStringLength;
     TextView sensorView;
-    TextView sensorView2;
-    TextView sensorView3;
+    TextView sensorView2; //for pressure
+    TextView sensorView3; //for altitude
     Handler bluetoothIn;
 
     private static double sensorT;
@@ -71,7 +64,7 @@ public class MainActivity extends Activity {
     private static String unixT;
 
 
-    final int handlerState = 0;                        //used to identify handler message
+    final int handlerState = 0;
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder recDataString = new StringBuilder();
@@ -83,11 +76,6 @@ public class MainActivity extends Activity {
 
     // String for MAC address
     private static String address;
-
-//    private static final String[] INITIAL_PERMS={
-//            Manifest.permission.ACCESS_FINE_LOCATION,
-//            Manifest.permission.READ_CONTACTS
-//    };
     private static final int LOCATION_REQUEST=1337;
     private static final String[] LOCATION_PERMS={
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -116,11 +104,6 @@ public class MainActivity extends Activity {
             requestPermissions(LOCATION_PERMS, LOCATION_REQUEST);
         }
         setContentView(R.layout.activity_main);
-
-
-
-
-        //Link the button and textViews to respective views
         btnOn = (Button) findViewById(R.id.buttonOn);
         txtString = (TextView) findViewById(R.id.txtString);
         txtStringLength = (TextView) findViewById(R.id.testView1);
@@ -151,7 +134,7 @@ public class MainActivity extends Activity {
             }
         };
 
-        btAdapter = BluetoothAdapter.getDefaultAdapter();       // get Bluetooth adapter
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
         checkBTState();
 
         // Set up onClick listener for buttons to turn on logging
@@ -176,106 +159,81 @@ public class MainActivity extends Activity {
         String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
         Long tsLong = System.currentTimeMillis()/1000;
         String ts = tsLong.toString();
-                // textView is the TextView view that should display it
-                //txtStringLength.setText(currentDateTimeString);
-                timeT = currentDateTimeString;
-                unixT = ts;
-                String time = timeT;
-                String unix = unixT;
-                double gpsX = gpsValueX;
-                double gpsY = gpsValueY;
-                double temp = sensorT;
+        // textView is the TextView view that should display it
+        //txtStringLength.setText(currentDateTimeString);
+        timeT = currentDateTimeString;
+        unixT = ts;
+        String time = timeT;
+        String unix = unixT;
+        double gpsX = gpsValueX;
+        double gpsY = gpsValueY;
+        double temp = sensorT;
 
-                //double gpsX = 36.2157698;
-                //double gpsY = -81.669296;
-                //double temp = 75;
-
-
-                JSONArray list = new JSONArray();
-                JSONObject obj1 = new JSONObject();
-
-                try{
-                    obj1.put("coordX", gpsX);
-                    obj1.put("coordY", gpsY);
-                    obj1.put("temp", temp);
-                    obj1.put("time", time);
-                    obj1.put("unix", unix);
-                    list.put(0, obj1);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+        //double gpsX = 36.2157698;
+        //double gpsY = -81.669296;
+        //double temp = 75;
 
 
-                String urlString = "34.223.239.158/addTest.php"; // URL to call
-                HttpURLConnection urlConnection;
-                String result = null;
-                try {
-                    //Connect
-                    urlConnection = (HttpURLConnection) ((new URL("http://34.223.239.158/addTest.php").openConnection()));
-                    urlConnection.setDoOutput(true);
-                    urlConnection.setRequestProperty("Content-Type", "application/json");
-                    urlConnection.setRequestMethod("POST");
-                    urlConnection.connect();
+        JSONArray list = new JSONArray();
+        JSONObject obj1 = new JSONObject();
 
-                    //Write
-                    OutputStream outputStream = urlConnection.getOutputStream();
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
-                    Log.e("BLah", list.toString());
-                    writer.write(list.toString());
-                    writer.close();
-                    outputStream.close();
+        try{
+            obj1.put("coordX", gpsX);
+            obj1.put("coordY", gpsY);
+            obj1.put("temp", temp);
+            obj1.put("time", time);
+            obj1.put("unix", unix);
+            list.put(0, obj1);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
-                    //Read
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
 
-                    String line = null;
-                    StringBuilder sb = new StringBuilder();
+        String urlString = "34.223.239.158/addTest.php"; // URL to call
+        HttpURLConnection urlConnection;
+        String result = null;
+        try {
+            //Connect
+            urlConnection = (HttpURLConnection) ((new URL("http://34.223.239.158/addTest.php").openConnection()));
+            urlConnection.setDoOutput(true);
+            urlConnection.setRequestProperty("Content-Type", "application/json");
+            urlConnection.setRequestMethod("POST");
+            urlConnection.connect();
 
-                    while ((line = bufferedReader.readLine()) != null) {
-                        sb.append(line);
-                    }
+            //Write
+            OutputStream outputStream = urlConnection.getOutputStream();
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
+            Log.e("BLah", list.toString());
+            writer.write(list.toString());
+            writer.close();
+            outputStream.close();
 
-                    bufferedReader.close();
-                    result = sb.toString();
+            //Read
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
 
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            String line = null;
+            StringBuilder sb = new StringBuilder();
 
-                //$.with(context, Integer);
-//                $.ajax(new AjaxOptions()
-//                        .url("http://34.223.239.158/addTest.php")
-//                        .type("POST")
-//                        .dataType("json")
-//                        .data(list.toString())
-//                        .context(MainActivity.this)
-//                        .success(new Function() {
-//                            @Override
-//                            public void invoke($ droidQuery, Object... params) {
-//                                droidQuery.alert((String) params[0]);
-//                            }
-//                        }).error(new Function() {
-//                            @Override
-//                            public void invoke($ droidQuery, Object... params) {
-//                                int statusCode = (Integer) params[1];
-//                                String error = (String) params[2];
-//                                Log.e("Ajax", statusCode + " " + error);
-//                            }
-//                        }));
-
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line);
             }
-        });
+
+            bufferedReader.close();
+            result = sb.toString();
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
+});}
 
     private BluetoothSocket createBluetoothSocket(BluetoothDevice device) throws IOException {
 
         return  device.createRfcommSocketToServiceRecord(BTMODULEUUID);
     }
 
-
-    //http://stackoverflow.com/questions/3145089/what-is-the-simplest-and-most-robust-way-to-get-the-users-current-location-on-a?rq=1
     @Override
     public void onResume() {
         super.onResume();
@@ -294,7 +252,7 @@ public class MainActivity extends Activity {
         } catch (IOException e) {
             Toast.makeText(getBaseContext(), "Socket creation failed", Toast.LENGTH_LONG).show();
         }
-        // Establish the Bluetooth socket connection.
+        // Establish the Bluetooth socket connection
         try
         {
             btSocket.connect();
@@ -305,31 +263,18 @@ public class MainActivity extends Activity {
             } catch (IOException e2)
             {
                 //insert code to deal with this
+
             }
         }
         mConnectedThread = new ConnectedThread(btSocket);
         mConnectedThread.start();
 
-        //I send a character when resuming.beginning transmission to check device is connected
-        //If it is not an exception will be thrown in the write method and finish() will be called
+        //sends a character over bluetooth and triggers an exception if the connection isn't active
         mConnectedThread.write("x");
     }
 
-    @Override
-    public void onPause()
-    {
-        super.onPause();
-        //MyData.cancelTimer();
-        try
-        {
-            //Don't leave Bluetooth sockets open when leaving activity
-            btSocket.close();
-        } catch (IOException e2) {
-            //insert code to deal with this
-        }
-    }
 
-    //Checks that the Android device Bluetooth is available and prompts to be turned on if off
+    //Checks that Bluetooth functionality is enabled on the device; prompts user to turn it on if not
     private void checkBTState() {
 
         if(btAdapter==null) {
@@ -369,10 +314,10 @@ public class MainActivity extends Activity {
             byte[] buffer = new byte[256];
             int bytes;
 
-            // Keep looping to listen for received messages
+            // Keep listening until exception occurs or a socket is returned.
             while (true) {
                 try {
-                    bytes = mmInStream.read(buffer);            //read bytes from input buffer
+                    bytes = mmInStream.read(buffer);//read bytes from input buffer
                     String readMessage = new String(buffer, 0, bytes);
                     // Send the obtained bytes to the UI Activity via handler
                     bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
@@ -381,9 +326,22 @@ public class MainActivity extends Activity {
                 }
             }
         }
+
+        public void onPause()
+        {
+            super.onPause();
+            try
+            {
+                //Shuts off active sockets when phone sleeps or puts app in bg
+                btSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         //write method
         public void write(String input) {
-            byte[] msgBuffer = input.getBytes();           //converts entered String into bytes
+            byte[] msgBuffer = input.getBytes();//converts entered String into bytes
             try {
                 mmOutStream.write(msgBuffer);                //write bytes over BT connection via outstream
             } catch (IOException e) {
